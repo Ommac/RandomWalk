@@ -10,7 +10,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include <yarp/os/Time.h>
+#include <yarp/os/all.h>
 #include <yarp/sig/Vector.h>
 #include <yarp/math/Math.h>
 
@@ -26,8 +26,15 @@ using namespace iCub::iKin;
 
 int main()
 {
+    
+    Network yarp;
+
+    RpcServer inPort;            // Create a port.
+    inPort.open("/jointchecker/in");     // Give it a name on the network.
+    Bottle in, out;    // Make places to store things.    
+    
     // some useful variables
-    Vector q,jmin,jmax,pFoot,pThigh,pCalf;
+    Vector q,jmin,jmax,pFoot,pKnee;
 
     // you can get the same result by creating an iCubArm object;
     // iKin already provides internally coded limbs for iCub, such as
@@ -46,65 +53,63 @@ int main()
     // Remind that angles are expressed in radians
     jmin.resize(chain->getDOF());
     jmax.resize(chain->getDOF());
-    for (unsigned int i=0; i<chain->getDOF(); i++)
+    for (unsigned int i=0; i<chain->getDOF(); ++i)
     {    
-        jmin(i) = (*chain)(i).getMin() + CTRL_RAD2DEG*10;
-        jmax(i) = (*chain)(i).getMax() - CTRL_RAD2DEG*10;
+        jmin(i) = CTRL_RAD2DEG*(*chain)(i).getMin() + 5.0;
+        jmax(i) = CTRL_RAD2DEG*(*chain)(i).getMax() - 5.0;
     }
-
-    // there are three links for the torso which do not belong to the
-    // DOF set since they are blocked. User can access them through [] operators
-    cout << "Torso blocked links at:" << endl;
-    for (unsigned int i=0; i<chain->getN()-chain->getDOF(); i++)
-        cout << CTRL_RAD2DEG*(*chain)[i].getAng() << " ";
-    cout << endl;
-
+    
+    cout << jmin.toString() << endl;
+    cout << jmax.toString() << endl;
     
     while(true)
     {
+        inPort.read(q,true); // Read from the port, warn that we'll be replying.
+        printf("Got %s\n", q.toString().c_str());   
+        
         // retrieve the end-effector position.
         // Translational part is in meters.
-        pFoot = chain->EndEffPosition();
+        pFoot = chain->EndEffPosition(q);
         cout << "Current leg end-effector position: " << pFoot.toString().c_str() << endl;
         
-        // Retrieve current thigh position
-        pThigh = chain->Position();
-        cout << "Current thigh position: " << pThigh.toString().c_str() << endl;
-            
-        // Retrieve current calf position
-        pCalf = chain->Position();
-        cout << "Current calf position: " << pCalf.toString().c_str() << endl;
-        
-        // ------------------------------
-        // Perform cartesian limits check
-        // ------------------------------
+        bool check = true;
         
         //Check the y component
-        if (pFoot(1) > -0.1 || pThigh(1) > -0.1 || pCalf(1) > -0.1) // Set to 10 cm
+        if (pFoot(1) > -0.15)
         {
             cout << "Cartesian space limits not respected" << endl;
-            return false;
+            check = false;
         }
         
         // ------------------------------
         //   Perform joint limits check
         // ------------------------------
         
-        // get initial joints configuration
-        q = chain->getAng();
-        bool check = true;
-        for (int i = 0 ; i<q.length() && check == true; ++i)
-        {
-            if (q(i) > jmax(i) || q(i) > jmin(i))
-                check = false;
-        }
-        
+//         // get initial joints configuration
+//         for (int i = 0 ; i<q.length() && check == true; ++i)
+//         {
+//             if ((q(i) > jmax(i)) || (q(i) < jmin(i)))
+//                 check = false;
+//         }
+//         
+//         // Extra limitation on  joint 1
+//         if ((q(1) < (jmin(1) + 10.0)))
+//                 check = false;
+    
         if  (!check)
         {
             cout << "Joint space limits not respected" << endl;
-            return false;
+            
+            out.clear();
+            out.addInt(0);
+            inPort.reply(out);    // send reply.
         }
-        
+        else
+        {
+            out.clear();
+            out.addInt(1);
+            inPort.reply(out);    // send reply.
+        }
     }
     return 0;
 }

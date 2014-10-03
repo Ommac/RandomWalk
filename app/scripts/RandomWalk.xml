@@ -1,0 +1,28 @@
+<application>
+    <name>RandomWalk</name>
+    <description></description>
+    <authors>
+        <author email="raffaello.camoriano@iit.it">Raffaello Camoriano</author>
+        <author email="diego.romeres@dei.unipd.it">Diego Romeres</author>
+    </authors>
+    <module>
+        <name>jointchecker</name>
+        <parameters></parameters>
+        <node>localhost</node>
+        <prefix></prefix>
+        <geometry></geometry>
+    </module>
+    <module>
+        <name>generator</name>
+        <parameters></parameters>
+        <node>localhost</node>
+        <prefix></prefix>
+        <geometry></geometry>
+    </module>
+    <connection>
+        <from>/generator/out</from>
+        <to>/jointchecker/in</to>
+        <protocol></protocol>
+        <geometry></geometry>
+    </connection>
+</application>

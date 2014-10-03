@@ -4,27 +4,33 @@
 # 
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-SET(PROJECTNAME CollisionAvoidance)
+SET(PROJECTNAME RandomWalk)
 PROJECT(${PROJECTNAME})
 
 FIND_PACKAGE(YARP)
 FIND_PACKAGE(ICUB)
+find_package(ICUBcontrib)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${YARP_MODULE_PATH})
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ICUB_MODULE_PATH})
-INCLUDE(iCubHelpers)
+list(APPEND CMAKE_MODULE_PATH ${YARP_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH ${ICUB_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
 
-IF(NOT ICUB_USE_IPOPT)
-    MESSAGE(FATAL_ERROR "IPOPT is required")
-ENDIF(NOT ICUB_USE_IPOPT)
-
-SET(folder_source main.cpp)
-SOURCE_GROUP("Source Files" FILES ${folder_source})
-
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${ICUB_LINK_FLAGS}")
-
-INCLUDE_DIRECTORIES(${ICUB_INCLUDE_DIRS} ${YARP_INCLUDE_DIRS})
-ADD_EXECUTABLE(${PROJECTNAME} ${folder_source})
-TARGET_LINK_LIBRARIES(${PROJECTNAME} iKin ${YARP_LIBRARIES})
+include(YarpInstallationHelpers)
+include(ICUBcontribHelpers)
+include(ICUBcontribOptions)
+icubcontrib_set_default_prefix()
 
 
+add_definitions(${YARP_DEFINES})   # add yarp definitions - this contains also -D_REENTRANT
+
+## add modules
+add_subdirectory(modules)
+
+## then apps
+add_subdirectory(app)
+
+## Add this instruction IF AND ONLY IF the project uses libraries.
+icubcontrib_finalize_export (${PROJECT_NAME})  
+
+## Uninstall
+icubcontrib_add_uninstall_target()
